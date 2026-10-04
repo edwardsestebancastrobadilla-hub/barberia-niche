@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Barbería Niche - Reserva tu cita</title>
+<style>
+:root{--bg:#f3f7fc;--card:#fff;--tx:#12202f;--mut:#60708a;--ac:#1e63d6;--acx:#fff;--bd:#d6e0ee;--ok:#2e7d4f;--bad:#c0392b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1623;--card:#172334;--tx:#e8eef7;--mut:#8fa0b8;--ac:#4d8dff;--acx:#0e1623;--bd:#26364d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.4}
+main{max-width:520px;margin:0 auto;padding:16px}
+h1{font-size:1.5rem;margin:8px 0 2px}h2{font-size:1rem;margin:20px 0 8px}
+.sub{color:var(--mut);margin:0 0 12px}
+.tabs{display:flex;gap:6px;margin:12px 0}.tabs button{flex:1}
+button,input{font:inherit;color:var(--tx)}
+button{border:1px solid var(--bd);background:var(--card);border-radius:10px;padding:10px 12px;cursor:pointer}
+button.on,button.pri{background:var(--ac);color:var(--acx);border-color:var(--ac);font-weight:600}
+button:disabled{opacity:.35;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.g3{grid-template-columns:repeat(3,1fr)}
+.opt{text-align:left}.opt small{display:block;color:var(--mut)}.opt.on small{color:inherit}
+input{width:100%;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--card);margin-bottom:8px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:8px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.msg{padding:10px;border-radius:10px;background:var(--card);border:1px solid var(--ok);color:var(--ok);margin:10px 0}
+.msg.e{border-color:var(--bad);color:var(--bad)}
+.del{color:var(--bad);padding:6px 10px}.hide{display:none}.x{opacity:.5;text-decoration:line-through}
+a.wa{display:block;text-align:center;text-decoration:none;background:#25d366;color:#fff;padding:12px;border-radius:10px;font-weight:600;margin-top:8px}
+</style>
+</head>
+<body>
+<main id="m">
+<h1>✂️ Barbería Niche</h1>
+<p class="sub">Reserva tu cita en 1 minuto</p>
+<div id="app" class="hide">
+<div class="tabs"><button id="t0" class="on" onclick="tab(0)">Reservar</button><button id="t1" onclick="tab(1)">Mis citas</button><button id="t2" onclick="tab(2)">Barbero</button></div>
+<section id="v0">
+<h2>1. Servicio</h2><div class="grid" id="svc"></div>
+<h2>2. Barbero</h2><div class="grid g3" id="bar"></div>
+<h2>3. Fecha</h2><input type="date" id="date">
+<h2>4. Hora</h2><div class="grid g3" id="slots"></div>
+<h2>5. Tus datos</h2>
+<input id="name" autocomplete="name" placeholder="Nombre completo"><input id="phone" type="tel" autocomplete="tel" placeholder="Número de WhatsApp (ej: 61234567)">
+<button class="pri" id="bk" style="width:100%" onclick="book()">Confirmar cita</button>
+<div id="done"></div>
+</section>
+<section id="v1" class="hide"><div id="list"></div></section>
+<section id="v2" class="hide">
+<div id="plogin"><h2>Acceso del barbero</h2><input id="pin" type="password" placeholder="PIN"><button class="pri" style="width:100%" onclick="entrar()">Entrar</button><div id="perr"></div></div>
+<div id="pbody" class="hide"><div id="alert"></div><div id="plist"></div></div>
+</section>
+</div>
+<div id="st" class="sub">Cargando…</div>
+</main>
+<script>
+var SB="https://fkfmsneegwdcibomjoqo.supabase.co",KEY="sb_publishable_zQ-gMBsvKjwr_SRyMAhX1g_8hOomZF1";
+var OWNER_WA="50661305478",DEV_WA="50671269777";
+var SV=[["Corte clásico",5000],["Barba",3000],["Corte + barba",7000],["Cejas",1500]];
+var BA=["Cualquiera","Carlos","Miguel"],HR=[9,10,11,12,13,14,15,16,17,18];
+var S={s:0,b:0,t:null},occ=[],PIN=null,lastN=null,tm=null,pend=null,PL=[];
+var $=function(i){return document.getElementById(i)};
+function ld(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function esc(s){return String(s).replace(/[&<>"]/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]})}
+function ph(p){p=String(p).replace(/\D/g,"");return p.length==8?"506"+p:p}
+function wopen(n,t){try{window.open("https://wa.me/"+n+"?text="+encodeURIComponent(t),"_blank")}catch(e){}}
+function hh(h){return (h<10?"0":"")+h+":00"}
+function rpc(fn,a){return fetch(SB+"/rest/v1/rpc/"+fn,{method:"POST",headers:{"apikey":KEY,"Content-Type":"application/json"},body:JSON.stringify(a||{})}).then(function(r){return r.text().then(function(t){var j=null;try{j=JSON.parse(t)}catch(e){}if(!r.ok)throw {code:j&&j.code,msg:(j&&j.message)||t};return j})})}
+var td=new Date(),iso=td.getFullYear()+"-"+("0"+(td.getMonth()+1)).slice(-2)+"-"+("0"+td.getDate()).slice(-2);
+
+function tab(n){for(var i=0;i<3;i++){$("v"+i).classList.toggle("hide",i!=n);$("t"+i).classList.toggle("on",i==n)}if(n==1)mis();if(n==2&&PIN)panel()}
+function slotTaken(t){var T=function(b){return occ.some(function(o){return o.hora==t&&o.barbero==b})};return S.b?T(BA[S.b]):BA.slice(1).every(T)}
+function drawOpts(){
+$("svc").innerHTML=SV.map(function(x,i){return '<button class="opt'+(S.s==i?' on':'')+'" onclick="S.s='+i+';drawOpts()">'+x[0]+'<small>₡'+x[1].toLocaleString('es-CR')+'</small></button>'}).join("");
+$("bar").innerHTML=BA.map(function(x,i){return '<button class="'+(S.b==i?'on':'')+'" onclick="S.b='+i+';drawOpts()">'+x+'</button>'}).join("");
+var d=$("date").value,now=new Date().getHours();
+$("slots").innerHTML=HR.map(function(h){var t=hh(h),off=slotTaken(t)||(d==iso&&h<=now);return '<button '+(off?'disabled ':'')+'class="'+(S.t==t?'on':'')+'" onclick="S.t=\''+t+'\';drawOpts()">'+t+'</button>'}).join("");
+}
+function loadOcc(){rpc("horas_ocupadas",{p_fecha:$("date").value}).then(function(r){occ=r;drawOpts()}).catch(function(){})}
+function book(){
+var n=$("name").value.trim(),p=$("phone").value.trim(),d=$("date").value;
+var er=!d||!S.t?"Elige fecha y hora.":n.split(/\s+/).length<2?"Escribe tu nombre completo (nombre y apellido).":p.replace(/\D/g,"").length<8?"Escribe un número de WhatsApp válido de 8 dígitos.":"";
+if(er){$("done").innerHTML='<div class="msg e">'+er+'</div>';return}
+var b=S.b?BA[S.b]:BA.slice(1).filter(function(x){return !occ.some(function(o){return o.hora==S.t&&o.barbero==x})})[0],s=SV[S.s],t=S.t;
+$("bk").disabled=true;
+rpc("crear_cita",{p_servicio:s[0],p_precio:s[1],p_barbero:b,p_fecha:d,p_hora:t,p_nombre:n,p_telefono:ph(p)}).then(function(id){
+var m=ld("mis",[]);m.push(id);sv("mis",m);sv("cli",{n:n,p:p});
+var tx="Hola! Reservé: "+s[0]+" con "+b+" el "+d+" a las "+t+". Nombre: "+n+".";
+$("done").innerHTML='<div class="msg">✅ ¡Cita confirmada! '+esc(s[0])+' con '+b+' · '+d+' · '+t+'</div><a class="wa" target="_blank" rel="noopener" href="https://wa.me/'+OWNER_WA+'?text='+encodeURIComponent(tx)+'">Avisar por WhatsApp (opcional)</a>';
+S.t=null;loadOcc();
+}).catch(function(e){
+$("done").innerHTML='<div class="msg e">'+(e.code=="23505"?"Esa hora acaba de ser tomada. Elige otra.":"No se pudo guardar la cita. Intenta de nuevo.")+'</div>';loadOcc();
+}).then(function(){$("bk").disabled=false});
+}
+function mis(){
+var ids=ld("mis",[]);
+if(!ids.length){$("list").innerHTML='<p class="sub">Aún no tienes citas.</p>';return}
+rpc("mis_citas",{p_ids:ids}).then(function(r){
+r.sort(function(a,b){return (a.fecha+a.hora)<(b.fecha+b.hora)?-1:1});
+$("list").innerHTML=r.map(function(c){var a=c.estado=="activa";return '<div class="card'+(a?'':' x')+'"><div class="row"><div><b>'+esc(c.servicio)+'</b> con '+esc(c.barbero)+'<br><small>'+c.fecha+' · '+c.hora+(a?'':' · Cancelada')+'</small></div>'+(a?'<button class="del" onclick="canc(\''+c.id+'\')">'+(pend==c.id?'¿Seguro? Toca otra vez':'Cancelar')+'</button>':'')+'</div></div>'}).join("")
+}).catch(function(){$("list").innerHTML='<div class="msg e">No se pudieron cargar tus citas.</div>'});
+}
+function canc(id){if(pend!=id){pend=id;mis();return}pend=null;rpc("cancelar_cita",{p_id:id}).then(function(){mis();loadOcc()}).catch(function(){})}
+function entrar(){PIN=$("pin").value;lastN=null;panel()}
+function panel(){
+rpc("panel_citas",{p_pin:PIN}).then(function(r){
+PL=r;$("plogin").classList.add("hide");$("pbody").classList.remove("hide");
+var act=r.filter(function(c){return c.estado=="activa"});
+if(lastN!==null&&act.length>lastN){$("alert").innerHTML='<div class="msg">🔔 ¡Nueva cita agendada!</div>';try{navigator.vibrate&&navigator.vibrate(300)}catch(e){}}
+lastN=act.length;
+$("plist").innerHTML='<p class="sub">'+act.length+' citas activas</p>'+(r.map(function(c){var a=c.estado=="activa";return '<div class="card'+(a?'':' x')+'"><div class="row"><div><b>'+esc(c.nombre)+'</b> · '+esc(c.telefono)+'<br>'+esc(c.servicio)+' con '+esc(c.barbero)+'<br><small>'+c.fecha+' · '+c.hora+(a?'':' · '+(c.estado=="cancelada_cliente"?'Canceló el cliente':'Canceló la barbería'))+'</small></div>'+(a?'<button class="del" onclick="pcanc(\''+c.id+'\')">Cancelar y avisar</button>':'')+'</div></div>'}).join("")||'<p class="sub">No hay citas próximas.</p>');
+clearTimeout(tm);tm=setTimeout(function(){if(PIN&&!$("v2").classList.contains("hide"))panel()},20000);
+}).catch(function(e){
+if(e.msg=="pin"){PIN=null;$("plogin").classList.remove("hide");$("pbody").classList.add("hide");$("perr").innerHTML='<div class="msg e">PIN incorrecto.</div>'}
+});
+}
+function pcanc(id){
+var c=PL.filter(function(x){return x.id==id})[0];
+if(!c||!confirm("¿Cancelar la cita de "+c.nombre+" y avisarle por WhatsApp?"))return;
+rpc("panel_cancelar",{p_pin:PIN,p_id:id}).then(function(){
+wopen(ph(c.telefono),"Hola "+c.nombre+", lamentamos informarte que la barbería canceló tu cita ("+c.servicio+" el "+c.fecha+" a las "+c.hora+"). Escríbenos para reagendar.");panel()});
+}
+function lock(){
+$("m").innerHTML='<h1>✂️ Barbería Niche</h1><div class="card" style="margin-top:20px;text-align:center"><h2>🔒 Servicio suspendido</h2><p class="sub">El período de prueba terminó. Para reactivar la app, paga la suscripción mensual de <b>₡15.000</b> por SINPE Móvil:</p><div class="card"><b>6376-6625</b><br>Edwards Esteban Castro Badilla</div><p class="sub">Luego envía el comprobante por WhatsApp y se reactiva.</p><a class="wa" target="_blank" rel="noopener" href="https://wa.me/'+DEV_WA+'?text='+encodeURIComponent("Hola, hice el pago SINPE de la suscripción de Barbería Niche. Adjunto el comprobante.")+'">Enviar comprobante por WhatsApp</a></div>';
+}
+rpc("estado_app").then(function(until){
+if(iso>until){lock();return}
+$("st").classList.add("hide");$("app").classList.remove("hide");
+$("date").min=iso;$("date").value=iso;$("date").onchange=function(){S.t=null;loadOcc()};
+var cl=ld("cli",null);if(cl){$("name").value=cl.n;$("phone").value=cl.p}
+drawOpts();loadOcc();
+}).catch(function(){$("st").innerHTML='<div class="msg e">No se pudo conectar. Revisa tu internet e intenta de nuevo.</div>'});
+</script>
+</body>
+</html>
