@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quedó - Reserva tu cita</title>
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#2f6bff"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#f4f7ff;--card:#fff;--tx:#0f1a33;--mut:#5b6b8f;--ac:#2457f5;--acx:#fff;--bd:#d7e0f5;--gold:#b7791f;--ok:#1f8a5a;--bad:#c0392b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1020;--card:#141b34;--tx:#eef2ff;--mut:#93a0c4;--ac:#2f6bff;--acx:#fff;--bd:#26325a;--gold:#ffc83d}}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(900px 420px at 50% -160px,rgba(47,107,255,.22),transparent 70%),var(--bg);min-height:100vh;color:var(--tx);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.4}
+main{max-width:520px;margin:0 auto;padding:16px}
+h1{font-size:1.6rem;margin:8px 0 2px;letter-spacing:.2px}h2{font-size:1rem;margin:20px 0 8px;color:var(--gold)}
+.sub{color:var(--mut);margin:0 0 12px}
+.tabs{display:flex;gap:6px;margin:12px 0}.tabs button{flex:1}
+button,input,select{font:inherit;color:var(--tx)}
+button{border:1px solid var(--bd);background:var(--card);border-radius:12px;padding:10px 12px;cursor:pointer}
+button.on,button.pri{box-shadow:0 4px 14px rgba(47,107,255,.35);background:linear-gradient(90deg,var(--ac),#6a4dff);color:var(--acx);border-color:transparent;font-weight:600}
+button:disabled{opacity:.35;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.g3{grid-template-columns:repeat(3,1fr)}
+.opt{text-align:left}.opt small{display:block;color:var(--gold);font-weight:600}.opt.on small{color:inherit}
+input,select{width:100%;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--card);margin-bottom:8px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;margin-bottom:8px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.msg{padding:10px;border-radius:10px;background:var(--card);border:1px solid var(--ok);color:var(--ok);margin:10px 0}
+.msg.e{border-color:var(--bad);color:var(--bad)}
+.del{color:var(--bad);padding:6px 10px}.qr{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.qr a{font-size:.85rem;border:1px solid var(--bd);border-radius:999px;padding:6px 10px;color:var(--ac);text-decoration:none}.foot{display:flex;align-items:center;justify-content:center;gap:8px;margin:28px 0 8px;color:var(--mut);font-size:.85rem}.hide{display:none}.x{opacity:.5;text-decoration:line-through}
+a.wa{display:block;text-align:center;text-decoration:none;background:#25d366;color:#fff;padding:12px;border-radius:10px;font-weight:600;margin-top:8px}
+</style>
+</head>
+<body>
+<main id="m">
+<h1>✂️ Barbería Niche</h1>
+<p class="sub">Reserva tu cita en 1 minuto</p>
+<div id="app" class="hide">
+<div class="tabs"><button id="t0" class="on" onclick="tab(0)">Reservar</button><button id="t1" onclick="tab(1)">Mis citas</button><button id="t2" onclick="tab(2)">Barbero</button></div>
+<section id="v0">
+<h2>1. Servicio</h2><div class="grid" id="svc"></div>
+<h2>2. Barbero</h2><div class="grid g3" id="bar"></div>
+<h2>3. Fecha</h2><input type="date" id="date">
+<h2>4. Hora</h2><div class="grid g3" id="slots"></div>
+<h2>5. Tus datos</h2>
+<input id="name" autocomplete="name" placeholder="Nombre completo"><input id="phone" type="tel" autocomplete="tel" placeholder="Número de WhatsApp (ej: 61234567)">
+<button class="pri" id="bk" style="width:100%" onclick="book()">Confirmar cita</button>
+<div id="done"></div>
+</section>
+<section id="v1" class="hide"><div id="list"></div></section>
+<section id="v2" class="hide">
+<div id="plogin"><h2>Acceso del barbero</h2><input id="pin" type="password" placeholder="PIN"><button class="pri" style="width:100%" onclick="entrar()">Entrar</button><div id="perr"></div></div>
+<div id="pbody" class="hide"><div class="tabs"><button id="p0" class="on" onclick="ptab(0)">Citas</button><button id="p1" onclick="ptab(1)">Ingresos</button><button id="p2" onclick="ptab(2)">Ajustes</button></div><div id="alert"></div><div id="plist"></div><div id="ping" class="hide"></div><div id="paj" class="hide"></div></div>
+</section>
+</div>
+<div id="st" class="sub">Cargando…</div>
+<div class="foot" id="foot"></div>
+</main>
+<script>
+var SB="https://fkfmsneegwdcibomjoqo.supabase.co",KEY="sb_publishable_zQ-gMBsvKjwr_SRyMAhX1g_8hOomZF1";
+var Q=new URLSearchParams(location.search),SLUG=(Q.get("b")||ld("slug","niche")).toLowerCase().replace(/[^a-z0-9-]/g,"")||"niche";if(Q.get("b"))sv("slug",SLUG);
+var OWNER_WA="",DEV_WA="50671269777",BN="Barbería",MP=true;
+var SV=[["Corte clásico",5000],["Barba",3000],["Corte + barba",7000],["Cejas",1500]];
+var BA=["Cualquiera","Carlos","Miguel"],HR=[9,10,11,12,13,14,15,16,17,18];
+var S={s:0,b:0,t:null},ML=[],occ=[],PIN=null,lastN=null,tm=null,pend=null,PL=[];
+var $=function(i){return document.getElementById(i)};
+function setTitle(n){var w=String(n).trim().split(" "),l=w.pop();document.querySelector("h1").innerHTML="✂️ "+esc(w.join(" "))+(w.length?" ":"")+'<span style="color:var(--gold)">'+esc(l)+'</span>'}
+function LOGO(n){return '<svg viewBox="0 0 512 512" width="'+n+'" height="'+n+'" role="img" aria-label="Quedó"><defs><linearGradient id="qg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f7bff"/><stop offset="1" stop-color="#123c91"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#qg)"/><rect x="118" y="150" width="276" height="246" rx="44" fill="#fff"/><path d="M118 194a44 44 0 0 1 44-44h188a44 44 0 0 1 44 44v20H118z" fill="#0e2f73"/><rect x="186" y="112" width="32" height="64" rx="16" fill="#f2b441"/><rect x="294" y="112" width="32" height="64" rx="16" fill="#f2b441"/><path d="M190 308l50 50 92-100" fill="none" stroke="#1e63d6" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/></svg>'}
+if($("foot"))$("foot").innerHTML='Reservas con '+LOGO(20)+' <b>Quedó</b>';
+function ld(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function esc(s){return String(s).replace(/[&<>"]/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]})}
+function ph(p){p=String(p).replace(/\D/g,"");return p.length==8?"506"+p:p}
+function wopen(n,t){try{window.open("https://wa.me/"+n+"?text="+encodeURIComponent(t),"_blank")}catch(e){}}
+function hh(h){return (h<10?"0":"")+h+":00"}
+function rpc(fn,a){return fetch(SB+"/rest/v1/rpc/"+fn,{method:"POST",headers:{"apikey":KEY,"Content-Type":"application/json"},body:JSON.stringify(a||{})}).then(function(r){return r.text().then(function(t){var j=null;try{j=JSON.parse(t)}catch(e){}if(!r.ok)throw {code:j&&j.code,msg:(j&&j.message)||t};return j})})}
+var td=new Date(),iso=td.getFullYear()+"-"+("0"+(td.getMonth()+1)).slice(-2)+"-"+("0"+td.getDate()).slice(-2);
+
+function tab(n){for(var i=0;i<3;i++){$("v"+i).classList.toggle("hide",i!=n);$("t"+i).classList.toggle("on",i==n)}if(n==1)mis();if(n==2&&PIN)panel()}
+function slotTaken(t){var T=function(b){return occ.some(function(o){return o.hora==t&&o.barbero==b})};return S.b?T(BA[S.b]):BA.slice(1).every(T)}
+function drawOpts(){
+$("svc").innerHTML=SV.map(function(x,i){return '<button class="opt'+(S.s==i?' on':'')+'" onclick="S.s='+i+';drawOpts()">'+esc(x[0])+(MP?'<small>₡'+Number(x[1]).toLocaleString('es-CR')+'</small>':'')+'</button>'}).join("");
+$("bar").innerHTML=BA.map(function(x,i){if(i==0&&BA.length==2)return "";return '<button class="'+(S.b==i?'on':'')+'" onclick="S.b='+i+';drawOpts()">'+esc(x)+'</button>'}).join("");
+var d=$("date").value,now=new Date().getHours();
+$("slots").innerHTML=HR.map(function(h){var t=hh(h),off=slotTaken(t)||(d==iso&&h<=now);return '<button '+(off?'disabled ':'')+'class="'+(S.t==t?'on':'')+'" onclick="S.t=\''+t+'\';drawOpts()">'+t+'</button>'}).join("");
+}
+function loadOcc(){rpc("horas_ocupadas",{p_slug:SLUG,p_fecha:$("date").value}).then(function(r){occ=r;drawOpts()}).catch(function(){})}
+function book(){
+var n=$("name").value.trim(),p=$("phone").value.trim(),d=$("date").value;
+var er=!d||!S.t?"Elige fecha y hora.":n.split(/\s+/).length<2?"Escribe tu nombre completo (nombre y apellido).":p.replace(/\D/g,"").length<8?"Escribe un número de WhatsApp válido de 8 dígitos.":"";
+if(er){$("done").innerHTML='<div class="msg e">'+er+'</div>';return}
+var b=S.b?BA[S.b]:BA.slice(1).filter(function(x){return !occ.some(function(o){return o.hora==S.t&&o.barbero==x})})[0],s=SV[S.s],t=S.t;
+$("bk").disabled=true;
+rpc("crear_cita",{p_slug:SLUG,p_servicio:s[0],p_precio:s[1],p_barbero:b,p_fecha:d,p_hora:t,p_nombre:n,p_telefono:ph(p)}).then(function(id){
+var m=ld("mis",[]);m.push(id);sv("mis",m);sv("cli",{n:n,p:p});
+var tx="Hola! Reservé: "+s[0]+" con "+b+" el "+d+" a las "+t+". Nombre: "+n+".";
+$("done").innerHTML='<div class="msg">✅ ¡Cita confirmada! '+esc(s[0])+' con '+b+' · '+d+' · '+t+'</div><a class="wa" target="_blank" rel="noopener" href="https://wa.me/'+OWNER_WA+'?text='+encodeURIComponent(tx)+'">Avisar por WhatsApp (opcional)</a>';
+S.t=null;loadOcc();
+}).catch(function(e){
+$("done").innerHTML='<div class="msg e">'+(e.code=="23505"?"Esa hora acaba de ser tomada. Elige otra.":"No se pudo guardar la cita. Intenta de nuevo.")+'</div>';loadOcc();
+}).then(function(){$("bk").disabled=false});
+}
+function mis(){
+var ids=ld("mis",[]);
+if(!ids.length){$("list").innerHTML='<p class="sub">Aún no tienes citas.</p>';return}
+return rpc("mis_citas",{p_ids:ids}).then(function(r){
+ML=r;r.sort(function(a,b){return (a.fecha+a.hora)<(b.fecha+b.hora)?-1:1});
+$("list").innerHTML=r.map(function(c){var a=c.estado=="activa";return '<div class="card'+(a?'':' x')+'"><div class="row"><div><b>'+esc(c.servicio)+'</b> con '+esc(c.barbero)+'<br><small>'+c.fecha+' · '+c.hora+(a?'':c.estado=="completada"?' · Atendida':' · Cancelada')+'</small></div>'+(a?'<button class="del" onclick="canc(\''+c.id+'\')">'+(pend==c.id?'¿Seguro? Toca otra vez':'Cancelar')+'</button>':'')+'</div>'+(a?qm(c):'')+'</div>'}).join("")
+}).catch(function(){$("list").innerHTML='<div class="msg e">No se pudieron cargar tus citas.</div>'});
+}
+function canc(id){
+if(pend!=id){pend=id;mis();return}
+pend=null;
+var c=ML.filter(function(x){return x.id==id})[0],cl=ld("cli",{n:""});
+rpc("cancelar_cita",{p_id:id}).then(function(){
+loadOcc();
+return Promise.resolve(mis()).then(function(){
+if(!c)return;
+var tx="Hola, cancelo mi cita ("+c.servicio+" con "+c.barbero+" el "+c.fecha+" a las "+c.hora+"). Nombre: "+cl.n+".";
+$("list").insertAdjacentHTML("afterbegin",'<div class="msg">Cita cancelada.</div><a class="wa" target="_blank" rel="noopener" href="https://wa.me/'+OWNER_WA+'?text='+encodeURIComponent(tx)+'">Avisar la cancelación por WhatsApp</a>');
+});
+}).catch(function(){$("list").insertAdjacentHTML("afterbegin",'<div class="msg e">No se pudo cancelar. Intenta de nuevo.</div>')});
+}
+function entrar(){PIN=$("pin").value;lastN=null;panel()}
+var QO=null,QC=null,PI=[],PR=7;
+function qm(c){var d=" ("+c.servicio+" el "+c.fecha+" a las "+c.hora+")";
+return '<div class="qr">'+[["Voy tarde","Hola, voy a llegar unos minutos tarde a mi cita"],["Confirmo asistencia","Hola, confirmo mi asistencia a mi cita"],["Cambiar hora","Hola, quisiera cambiar la hora de mi cita"]].map(function(q){return '<a target="_blank" rel="noopener" href="https://wa.me/'+OWNER_WA+'?text='+encodeURIComponent(q[1]+d)+'">'+q[0]+'</a>'}).join("")+'</div>'}
+function qrs(c){var n=c.nombre.split(" ")[0],d=c.servicio+" el "+c.fecha+" a las "+c.hora;
+return [["Cita confirmada","Hola "+n+", tu cita ("+d+") está confirmada. ¡Te esperamos en Barbería Niche!"],["Recordatorio","Hola "+n+", te recordamos tu cita ("+d+"). Si no puedes venir, avísanos por favor."],["Ya puedes pasar","Hola "+n+", ya puedes pasar, te estamos esperando."],["Retraso nuestro","Hola "+n+", llevamos unos minutos de retraso. Gracias por tu paciencia."],["Reagendar","Hola "+n+", necesitamos reagendar tu cita ("+d+"). ¿Qué otro horario te sirve?"]]}
+function beep(){try{var A=window.AudioContext||window.webkitAudioContext,x=new A(),o=x.createOscillator(),g=x.createGain();o.connect(g);g.connect(x.destination);o.frequency.value=880;g.gain.value=.2;o.start();setTimeout(function(){o.stop();x.close()},400)}catch(e){}}
+function drawPanel(){
+var act=PL.filter(function(c){return c.estado=="activa"});
+$("plist").innerHTML='<p class="sub">'+act.length+' citas activas</p>'+(PL.map(function(c){var a=c.estado=="activa";return '<div class="card'+(a||c.estado=="completada"?'':' x')+'"><div class="row"><div><b>'+esc(c.nombre)+'</b> · '+esc(c.telefono)+'<br>'+esc(c.servicio)+' con '+esc(c.barbero)+'<br><small>'+c.fecha+' · '+c.hora+(a?'':' · '+(c.estado=="completada"?'Cobrada ✓':c.estado=="cancelada_cliente"?'Canceló el cliente':'Canceló la barbería'))+'</small></div>'+(a?'<div style="display:grid;gap:4px"><button class="pri" onclick="QC=QC==\''+c.id+'\'?null:\''+c.id+'\';QO=null;drawPanel()">Cobrar</button><button onclick="QO=QO==\''+c.id+'\'?null:\''+c.id+'\';drawPanel()">Responder</button><button class="del" onclick="pcanc(\''+c.id+'\')">Cancelar y avisar</button></div>':'')+'</div>'+(a&&QC==c.id?'<div class="qr"><input id="mp" type="number" inputmode="numeric" value="'+c.precio+'" style="width:110px;margin:0"><button onclick="pcobrar(\''+c.id+'\',\'efectivo\')">Efectivo</button><button onclick="pcobrar(\''+c.id+'\',\'sinpe\')">SINPE</button></div>':'')+(a&&QO==c.id?'<div class="qr">'+qrs(c).map(function(q){return '<a target="_blank" rel="noopener" href="https://wa.me/'+ph(c.telefono)+'?text='+encodeURIComponent(q[1])+'">'+q[0]+'</a>'}).join("")+'</div>':'')+'</div>'}).join("")||'<p class="sub">No hay citas próximas.</p>');
+}
+function panel(){
+rpc("panel_citas",{p_slug:SLUG,p_pin:PIN}).then(function(r){
+PL=r;$("plogin").classList.add("hide");$("pbody").classList.remove("hide");
+var n=r.filter(function(c){return c.estado=="activa"}).length;
+if(lastN!==null&&n>lastN){$("alert").innerHTML='<div class="msg">🔔 ¡Nueva cita agendada!</div>';beep();document.title="🔔 Nueva cita";try{navigator.vibrate&&navigator.vibrate([300,100,300])}catch(e){}}
+lastN=n;if(!QC)drawPanel();
+clearTimeout(tm);tm=setTimeout(function(){if(PIN&&!$("v2").classList.contains("hide"))panel()},10000);
+}).catch(function(e){
+if(e.msg=="pin"){PIN=null;$("plogin").classList.remove("hide");$("pbody").classList.add("hide");$("perr").innerHTML='<div class="msg e">PIN incorrecto.</div>'}
+});
+}
+function pcanc(id){
+var c=PL.filter(function(x){return x.id==id})[0];
+if(!c||!confirm("¿Cancelar la cita de "+c.nombre+" y avisarle por WhatsApp?"))return;
+rpc("panel_cancelar",{p_slug:SLUG,p_pin:PIN,p_id:id}).then(function(){
+var tx="Hola "+c.nombre+", lamentamos informarte que la barbería canceló tu cita ("+c.servicio+" el "+c.fecha+" a las "+c.hora+"). Escríbenos para reagendar.";
+$("alert").innerHTML='<div class="msg">Cita cancelada.</div><a class="wa" target="_blank" rel="noopener" href="https://wa.me/'+ph(c.telefono)+'?text='+encodeURIComponent(tx)+'">Avisar al cliente por WhatsApp</a>';
+panel();}).catch(function(){$("alert").innerHTML='<div class="msg e">No se pudo cancelar. Intenta de nuevo.</div>'});
+}
+function dstr(o){var d=new Date();d.setDate(d.getDate()+o);return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2)}
+function money(n){return "₡"+Number(n).toLocaleString("es-CR")}
+function sum(a){return a.reduce(function(t,x){return t+x.monto},0)}
+function isEf(x){return x.metodo=="efectivo"}
+function ptab(n){for(var i=0;i<3;i++)$("p"+i).classList.toggle("on",i==n);$("plist").classList.toggle("hide",n!=0);$("ping").classList.toggle("hide",n!=1);$("paj").classList.toggle("hide",n!=2);if(n==1)loadIng();if(n==2)loadAj()}
+function loadIng(){rpc("panel_ingresos",{p_slug:SLUG,p_pin:PIN,p_desde:dstr(-30)}).then(function(r){PI=r;drawIng()}).catch(function(){$("ping").innerHTML='<div class="msg e">No se pudieron cargar los ingresos. ¿Ya ejecutaste el SQL de ingresos?</div>'})}
+function chart(){
+var n=PR,W=320,H=150,L=4,B=18,days=[],i;
+for(i=n-1;i>=0;i--)days.push(dstr(-i));
+var ef={},sp={};PI.forEach(function(x){var o=isEf(x)?ef:sp;o[x.fecha]=(o[x.fecha]||0)+x.monto});
+var mx=Math.max.apply(null,days.map(function(d){return (ef[d]||0)+(sp[d]||0)}).concat([1])),bw=(W-L*2)/n,g="";
+days.forEach(function(d,k){var e=ef[d]||0,q=sp[d]||0,x=L+k*bw+bw*.15,w=bw*.7,he=e/mx*(H-B-14),hs=q/mx*(H-B-14),y0=H-B;
+g+='<rect x="'+x+'" y="'+(y0-he)+'" width="'+w+'" height="'+he+'" fill="#1d9e75"/><rect x="'+x+'" y="'+(y0-he-hs)+'" width="'+w+'" height="'+hs+'" fill="#378add"/>';
+var lab=n==7?"DLMXJVS".charAt(new Date(d+"T12:00:00").getDay()):(k%5==0||k==n-1?d.slice(8):"");
+g+='<text x="'+(x+w/2)+'" y="'+(H-4)+'" text-anchor="middle" font-size="10" style="fill:var(--mut)">'+lab+'</text>'});
+return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img"><title>Ingresos por día</title><text x="'+L+'" y="10" font-size="10" style="fill:var(--mut)">'+money(mx)+'</text><line x1="0" y1="'+(H-B)+'" x2="'+W+'" y2="'+(H-B)+'" style="stroke:var(--bd)"/>'+g+'</svg>'}
+function grp(a,k){var o={};a.forEach(function(x){var q=x[k]||"-";o[q]=(o[q]||0)+x.monto});return o}
+function lines(o){var ks=Object.keys(o);return ks.length?ks.map(function(k){return '<div class="row card"><span>'+esc(k)+'</span><b>'+money(o[k])+'</b></div>'}).join(""):'<p class="sub">Sin datos.</p>'}
+function drawIng(){
+var hoy=PI.filter(function(x){return x.fecha==iso}),sem=PI.filter(function(x){return x.fecha>=dstr(-6)}),mes=PI.filter(function(x){return x.fecha.slice(0,7)==iso.slice(0,7)});
+var he=sum(hoy.filter(isEf)),me=sum(mes.filter(isEf)),ms=sum(mes)-me,tt=me+ms||1,dias={};
+PI.forEach(function(x){dias[x.fecha]=dias[x.fecha]||{t:0,n:0};dias[x.fecha].t+=x.monto;dias[x.fecha].n++});
+var dk=Object.keys(dias).sort().reverse();
+$("ping").innerHTML='<div class="card"><small>Hoy</small><div style="font-size:1.7rem;font-weight:600">'+money(sum(hoy))+'</div><small>'+hoy.length+' cobros · Efectivo '+money(he)+' · SINPE '+money(sum(hoy)-he)+'</small></div>'
++'<div class="grid"><div class="card"><small>Últimos 7 días</small><br><b>'+money(sum(sem))+'</b></div><div class="card"><small>Este mes</small><br><b>'+money(sum(mes))+'</b></div></div>'
++'<h2>Ingresos por día</h2><div class="qr" style="margin:0 0 6px"><button class="'+(PR==7?'on':'')+'" onclick="PR=7;drawIng()">7 días</button><button class="'+(PR==30?'on':'')+'" onclick="PR=30;drawIng()">30 días</button></div><div class="card">'+chart()+'<div style="display:flex;gap:14px;font-size:12px;margin-top:6px"><span><span style="color:#1d9e75">■</span> Efectivo</span><span><span style="color:#378add">■</span> SINPE</span></div></div>'
++'<h2>Cómo pagan (este mes)</h2><div class="card"><div style="display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--bd)"><div style="width:'+me/tt*100+'%;background:#1d9e75"></div><div style="width:'+ms/tt*100+'%;background:#378add"></div></div><div class="row" style="margin-top:8px;font-size:13px"><span><span style="color:#1d9e75">■</span> Efectivo '+money(me)+'</span><span><span style="color:#378add">■</span> SINPE '+money(ms)+'</span></div></div>'
++'<h2>Agregar ingreso sin cita</h2><input id="im" type="number" inputmode="numeric" placeholder="Monto en colones"><input id="ic" placeholder="Concepto (ej: corte sin cita)"><select id="ib">'+BA.slice(1).map(function(b){return '<option>'+esc(b)+'</option>'}).join("")+'</select><div class="qr" style="margin-bottom:8px"><button onclick="pextra(\'efectivo\')">Efectivo</button><button onclick="pextra(\'sinpe\')">SINPE</button></div>'
++'<h2>Por día</h2>'+(dk.map(function(d){return '<div class="row card"><span>'+d+' <small>('+dias[d].n+' cobros)</small></span><b>'+money(dias[d].t)+'</b></div>'}).join("")||'<p class="sub">Aún no hay ingresos.</p>')
++'<h2>Este mes por barbero</h2>'+lines(grp(mes,"barbero"))
++'<h2>Movimientos de hoy</h2>'+(hoy.map(function(x){return '<div class="row card"><span>'+esc(x.concepto||"")+' · '+esc(x.barbero||"")+'<br><small>'+(isEf(x)?'Efectivo':'SINPE')+'</small> <b>'+money(x.monto)+'</b></span><button class="del" onclick="pdel(\''+x.id+'\')">Borrar</button></div>'}).join("")||'<p class="sub">Sin movimientos hoy.</p>');
+}
+function pextra(m){var v=parseInt($("im").value,10);if(!(v>0)){alert("Escribe un monto válido.");return}
+rpc("panel_ingreso_extra",{p_slug:SLUG,p_pin:PIN,p_monto:v,p_metodo:m,p_concepto:$("ic").value.trim()||"Servicio sin cita",p_barbero:$("ib").value}).then(loadIng).catch(function(){alert("No se pudo guardar.")})}
+function pcobrar(id,m){var v=parseInt($("mp").value,10);if(!(v>0)){alert("Escribe un monto válido.");return}
+rpc("panel_cobrar",{p_slug:SLUG,p_pin:PIN,p_cita:id,p_monto:v,p_metodo:m}).then(function(){QC=null;panel()}).catch(function(){alert("No se pudo registrar el cobro.")})}
+function pdel(id){if(!confirm("¿Borrar este ingreso?"))return;rpc("panel_borrar_ingreso",{p_slug:SLUG,p_pin:PIN,p_id:id}).then(function(){loadIng();panel()})}
+var AS=null;
+function loadAj(){rpc("panel_config",{p_slug:SLUG,p_pin:PIN}).then(function(c){AS={n:c.nombre,w:c.whatsapp,sv:c.servicios.map(function(x){return {n:x.n,p:x.p}}),bb:c.barberos.slice(),mp:c.mostrar_precios!==false};drawAj()}).catch(function(){$("paj").innerHTML='<div class="msg e">No se pudieron cargar los ajustes. ¿Ya ejecutaste el SQL de ajustes?</div>'})}
+function drawAj(){
+$("paj").innerHTML='<h2>Datos de la barbería</h2><input value="'+esc(AS.n)+'" placeholder="Nombre" oninput="AS.n=this.value"><input type="tel" value="'+esc(AS.w)+'" placeholder="WhatsApp (ej: 50688881234)" oninput="AS.w=this.value">'
++'<h2>Servicios y precios</h2>'+AS.sv.map(function(x,i){return '<div class="row" style="margin-bottom:6px"><input value="'+esc(x.n)+'" placeholder="Servicio" oninput="AS.sv['+i+'].n=this.value" style="margin:0;flex:2"><input type="number" inputmode="numeric" value="'+esc(String(x.p))+'" placeholder="₡" oninput="AS.sv['+i+'].p=this.value" style="margin:0;flex:1"><button class="del" onclick="ajDel('+i+')">✕</button></div>'}).join("")
++'<button style="width:100%;margin:6px 0" onclick="AS.sv.push({n:\'\',p:\'\'});drawAj()">+ Agregar servicio</button>'
++'<label class="row" style="justify-content:flex-start;gap:10px;margin:8px 0"><input type="checkbox" style="width:auto;margin:0" '+(AS.mp?'checked':'')+' onchange="AS.mp=this.checked"> Mostrar precios a los clientes</label>'
++'<h2>Barberos</h2>'+AS.bb.map(function(x,i){return '<div class="row" style="margin-bottom:6px"><input value="'+esc(x)+'" placeholder="Nombre del barbero" oninput="AS.bb['+i+']=this.value" style="margin:0"><button class="del" onclick="ajDelB('+i+')">✕</button></div>'}).join("")
++'<button style="width:100%;margin:6px 0" onclick="AS.bb.push(\'\');drawAj()">+ Agregar barbero</button>'
++'<button class="pri" style="width:100%;margin-top:10px" onclick="ajSave()">Guardar cambios</button><div id="ajm"></div>';
+}
+function ajDel(i){if(AS.sv.length>1){AS.sv.splice(i,1);drawAj()}}
+function ajDelB(i){if(AS.bb.length>1){AS.bb.splice(i,1);drawAj()}}
+function ajSave(){
+var sv=AS.sv.map(function(x){return {n:String(x.n).trim(),p:parseInt(x.p,10)}}),bb=AS.bb.map(function(x){return String(x).trim()});
+if(sv.some(function(x){return !x.n||!(x.p>=0)})||bb.some(function(x){return !x})){$("ajm").innerHTML='<div class="msg e">Revisa que cada servicio tenga nombre y precio, y cada barbero un nombre.</div>';return}
+rpc("panel_guardar",{p_slug:SLUG,p_pin:PIN,p_nombre:AS.n,p_whatsapp:AS.w,p_servicios:sv,p_barberos:bb,p_mostrar:AS.mp}).then(function(){
+BN=AS.n.trim();OWNER_WA=AS.w.replace(/\D/g,"");MP=AS.mp;SV=sv.map(function(x){return [x.n,x.p]});BA=["Cualquiera"].concat(bb);S.s=0;S.b=bb.length==1?1:0;
+setTitle(BN);document.title=BN+" - Reserva tu cita";drawOpts();$("ajm").innerHTML='<div class="msg">Guardado ✓ Los clientes ya ven los cambios.</div>'
+}).catch(function(){$("ajm").innerHTML='<div class="msg e">No se pudo guardar. Revisa los datos e intenta de nuevo.</div>'})}
+function lock(){
+$("m").innerHTML='<h1>✂️ '+esc(BN)+'</h1><div class="card" style="margin-top:20px;text-align:center"><h2>🔒 Servicio suspendido</h2><p class="sub">El período de prueba terminó. Para reactivar la app, paga la suscripción mensual de <b>₡15.000</b> por SINPE Móvil:</p><div class="card"><b>6376-6625</b><br>Edwards Esteban Castro Badilla</div><p class="sub">Luego envía el comprobante por WhatsApp y se reactiva.</p><a class="wa" target="_blank" rel="noopener" href="https://wa.me/'+DEV_WA+'?text='+encodeURIComponent("Hola, hice el pago SINPE de la suscripción de Barbería Niche. Adjunto el comprobante.")+'">Enviar comprobante por WhatsApp</a></div>';
+}
+function boot(){
+rpc("info_barberia",{p_slug:SLUG}).then(function(i){
+if(!i){$("st").innerHTML='<div class="msg e">Barbería no encontrada. Revisa el enlace.</div>';return}
+BN=i.nombre;MP=i.mostrar_precios!==false;OWNER_WA=i.whatsapp;document.title=BN+" - Reserva tu cita";setTitle(BN);
+SV=i.servicios.map(function(x){return [x.n,x.p]});BA=["Cualquiera"].concat(i.barberos);if(i.barberos.length==1)S.b=1;
+if(iso>i.pagado_hasta){lock();return}
+$("st").classList.add("hide");$("app").classList.remove("hide");
+$("date").min=iso;$("date").value=iso;$("date").onchange=function(){S.t=null;loadOcc()};
+var cl=ld("cli",null);if(cl){$("name").value=cl.n;$("phone").value=cl.p}
+drawOpts();loadOcc();
+}).catch(function(){$("st").innerHTML='<div class="msg e">No se pudo conectar. Revisa tu internet e intenta de nuevo.</div>'});
+}
+var AP=null;
+function adminUI(){
+$("m").innerHTML='<div style="display:flex;align-items:center;gap:12px">'+LOGO(44)+'<h1 style="margin:0">Quedó</h1></div><p class="sub" style="margin-top:6px">Panel de administrador</p><div id="adm"><input id="apin" type="password" placeholder="PIN de administrador"><button class="pri" style="width:100%" onclick="aLogin()">Entrar</button></div>';
+}
+function aLogin(){AP=$("apin").value;aList()}
+function aList(){
+rpc("admin_lista",{p_pin:AP}).then(function(r){
+$("adm").innerHTML=r.map(function(b){var v=b.pagado_hasta<iso;return '<div class="card"><b>'+esc(b.nombre)+'</b><br><small>'+esc(b.slug)+' · '+(v?'VENCIDA el ':'activa hasta ')+b.pagado_hasta+'</small><div class="qr"><a href="#" onclick="aExt(\''+b.slug+'\',7);return false">+7 días</a><a href="#" onclick="aExt(\''+b.slug+'\',30);return false">+30 días</a><a href="#" onclick="aCopy(\''+b.slug+'\');return false">Copiar enlace</a></div></div>'}).join("")+'<h2>Nueva barbería</h2><input id="ns" placeholder="Código del enlace (ej: elite)"><input id="nn" placeholder="Nombre de la barbería"><input id="nw" type="tel" placeholder="WhatsApp (ej: 50688881234)"><input id="np" placeholder="PIN del barbero (mínimo 4)"><button class="pri" style="width:100%" onclick="aNew()">Crear (7 días de prueba)</button><div id="amsg"></div>';
+}).catch(function(e){$("adm").insertAdjacentHTML("afterbegin",'<div class="msg e">'+(e.msg=="pin"?"PIN incorrecto":"Error de conexión")+'</div>')})}
+function aExt(s,d){rpc("admin_extender",{p_pin:AP,p_slug:s,p_dias:d}).then(aList)}
+function aCopy(s){var u=location.origin+location.pathname+"?b="+s;try{navigator.clipboard.writeText(u);alert("Enlace copiado:\n"+u)}catch(e){prompt("Copia este enlace:",u)}}
+function aNew(){
+rpc("admin_crear",{p_pin:AP,p_slug:$("ns").value.trim().toLowerCase(),p_nombre:$("nn").value,p_whatsapp:$("nw").value,p_pin_barbero:$("np").value}).then(aList).catch(function(){$("amsg").innerHTML='<div class="msg e">No se pudo crear. El código usa solo minúsculas, números y guiones (mínimo 3), y puede estar repetido.</div>'});
+}
+if(Q.has("admin"))adminUI();else boot();
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(function(){});
+</script>
+</body>
+</html>
